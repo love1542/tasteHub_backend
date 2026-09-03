@@ -8,11 +8,12 @@
   "license": "ISC",
   "author": "love",
   "type": "module",
-  "main": "dist/app.js",
+  "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/app.ts",
+    "dev": "NODE_ENV=development tsx watch src/server.ts",
+    "test": "NODE_ENV=test tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/app.js"
+    "start": "NODE_ENV=production node dist/server.js"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
