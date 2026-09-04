@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import User from "../models/user.model.js";
+import { ApiResponse } from "../utils/apiResponse.js";
 
 export const login = async (req: Request, res: Response) => {
   res.json({
@@ -8,18 +9,26 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const registerUser = async (req: Request, res: Response) => {
-    const { email, password } = req.body
+    const { type, identifier, password } = req.body
     
     try {
-        const newuser = await User.create({email, password})
-        res.status(201).json({
-            message: "User registered successfully",
-            user: newuser
-        })
+        let newuser;
+        if (type === "email") {
+            const existingUser = await User.findOne({ where: { email: identifier } });
+            if (existingUser) {
+                return ApiResponse.error(res, "Email already exists", 400, "EMAIL_ALREADY_EXISTS");
+            }
+            newuser = await User.create({ email: identifier, password });
+        } else if (type === "phone") {
+            const existingUser = await User.findOne({ where: { phone: identifier } });
+            if (existingUser) {
+                return ApiResponse.error(res, "Phone number already exists", 400, "PHONE_ALREADY_EXISTS");
+            }
+            newuser = await User.create({ phone: identifier, password });
+        }
+        return ApiResponse.success(res, newuser, "User registered successfully", 201);
     } catch (error) {
-        res.status(500).json({
-            message: "Error registering user",
-            error
-        })
+        console.error("Error registering user:", error);
+        return ApiResponse.error(res, "Failed to register user", 500, "USER_REGISTRATION_FAILED", error);
     }
 };

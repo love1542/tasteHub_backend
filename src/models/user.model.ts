@@ -2,30 +2,68 @@ import { DataTypes, Model } from "sequelize";
 import { sequelizeInstance } from "../config/database.js";
 
 class User extends Model {
-  declare id: string;
-  declare email: string;
-  declare password: string;
+  declare user_id: string;
+  declare role: string;
+  declare email: string | null;
+  declare password: string | null;
+  declare phone: string | null;
+  declare full_name: string | null;
+  declare image: string | null;
+  declare gender: string | null;
+  declare date_of_birth: Date | null;
   declare createdAt: Date;
   declare updatedAt: Date;
 }
 
 User.init(
   {
-    id: {
+    user_id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
 
+    role: {
+      type: DataTypes.ENUM("user", "owner"),
+      allowNull: false,
+      defaultValue: "user",
+    },
+
     email: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
       unique: true,
     },
 
     password: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
+    },
+
+    phone: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
+    },
+
+    full_name: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+
+    image: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+
+    gender: {
+      type: DataTypes.ENUM("male", "female", "other"),
+      allowNull: true,
+    },
+
+    date_of_birth: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
     },
   },
   {
