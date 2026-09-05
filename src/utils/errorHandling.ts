@@ -1,20 +1,22 @@
 class AppError extends Error {
   statusCode: number;
   status: string;
-  code: string;
+  details?: unknown;
 
   constructor(
     message: string,
     statusCode: number,
-    code = "INTERNAL_SERVER_ERROR"
+    details?: unknown,
   ) {
     super(message);
 
     this.statusCode = statusCode;
+
     this.status = `${statusCode}`.startsWith("4")
       ? "fail"
       : "error";
-    this.code = code;
+
+    this.details = details;
 
     Error.captureStackTrace(this, this.constructor);
   }
