@@ -4,6 +4,7 @@ import OTP from "../../models/otp.model.js";
 import AppError from "../../utils/errorHandling.js";
 import { verifyOtp } from "../../services/auth.service.js";
 import { ApiResponse } from "../../utils/apiResponse.js";
+import { generateAccessToken } from "../../utils/tokenManger.js";
 
 export const sendOtp = async (userId: string, purpose: "login_email" | "login_phone" | "reset_password" | "register_email" | "register_phone") => {
     const otp = generateOTP();
@@ -23,7 +24,7 @@ export const sendOtp = async (userId: string, purpose: "login_email" | "login_ph
     }
 }
 
-export const verifyMyOtp = async (req: Request, res: Response) => {
+export const verifyRegisterOtp = async (req: Request, res: Response) => {
     try {
         const { userId, otpCode, purpose } = req.body;
 
@@ -33,7 +34,9 @@ export const verifyMyOtp = async (req: Request, res: Response) => {
             throw new AppError("Invalid or expired OTP", 400);
         } 
 
-        ApiResponse(res, { message: "OTP verified successfully" }, "Success", 200);
+        const accessToken = generateAccessToken(userId);
+
+        ApiResponse(res, { message: "OTP verified successfully", data: { access_token: accessToken } }, "Success", 200);
         
     } catch (error) {
         throw error;

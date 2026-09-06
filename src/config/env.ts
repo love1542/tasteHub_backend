@@ -21,5 +21,6 @@ export const env = {
     password: process.env.DB_PASSWORD || "",
   },
 
-  jwtSecret: process.env.JWT_SECRET || "",
+  refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET,
+  accessTokenSecret: process.env.ACCESS_TOKEN_SECRET 
 };
