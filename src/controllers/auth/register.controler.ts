@@ -1,7 +1,5 @@
 import type { Request, Response } from "express";
-import User from "../../models/user.model.js";
 import { ApiResponse } from "../../utils/apiResponse.js";
-import AppError from "../../utils/errorHandling.js";
 import { createUser } from "../../services/auth.service.js";
 import { sendOtp } from "./otp.controler.js";
 
@@ -24,3 +22,10 @@ export const registerUser = async (req: Request, res: Response) => {
         throw error;
     }
 };
+
+export const completeRegistration = async (req: Request, res: Response) => {
+    const { fullName, gender, dateOfBirth } = req.body;
+    const profileImage = req.file ? req.file.filename : null;
+
+    ApiResponse(res, { fullName, gender, dateOfBirth, profileImage }, "Registration completed successfully", 200);
+}
