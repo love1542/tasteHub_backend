@@ -11,6 +11,8 @@ class User extends Model {
   declare image: string | null;
   declare gender: string | null;
   declare date_of_birth: Date | null;
+  declare email_verified: boolean;
+  declare phone_verified: boolean;
   declare createdAt: Date;
   declare updatedAt: Date;
 }
@@ -64,6 +66,18 @@ User.init(
     date_of_birth: {
       type: DataTypes.DATEONLY,
       allowNull: true,
+    },
+    
+    email_verified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+
+    phone_verified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
     },
   },
   {

@@ -7,7 +7,7 @@ class OTP extends Model {
   declare otp_code: string;
   declare purpose: string;
   declare attempts: number;
-  declare expiration_time: Date;
+  declare expiras_at: Date;
   declare createdAt: Date;
 }
 
@@ -27,14 +27,14 @@ OTP.init(
             allowNull: false,
         },
         purpose: {
-            type: DataTypes.ENUM("login", "reset_password", "sign_up"),
+            type: DataTypes.ENUM("login_email", "login_phone", "reset_password", "register_email", "register_phone"),
             allowNull: false,
         },
         attempts: {
             type: DataTypes.INTEGER,
             defaultValue: 0,
         },
-        expiration_time: {
+        expiras_at: {
             type: DataTypes.DATE,
             allowNull: false,
         },
@@ -45,3 +45,5 @@ OTP.init(
         timestamps: true,
     }
 )
+
+export default OTP;
