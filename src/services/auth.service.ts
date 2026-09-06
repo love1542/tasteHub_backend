@@ -1,3 +1,4 @@
+import OTP from "../models/otp.model.js";
 import User from "../models/user.model.js";
 import AppError from "../utils/errorHandling.js";
 import bcrypt from "bcrypt"
@@ -52,4 +53,39 @@ export const createHashedPassword = async (password: string): Promise<string> =>
         console.error("Error hashing password:", error);
         throw new AppError("Failed to hash password", 500);
     }
+}
+
+
+export const verifyOtp = async (userId: string, otpCode: string, purpose: "login_email" | "login_phone" | "reset_password" | "register_email" | "register_phone") => {
+    try {
+        const otpRecord = await OTP.findOne({
+            where: {
+                user_id: userId,
+                purpose: purpose,
+                otp_code: otpCode,
+            },
+        });
+
+        if (!otpRecord) {
+            throw new AppError("Invalid OTP", 400);
+        }
+
+        if (otpRecord.expiras_at < new Date()) {
+            throw new AppError("OTP has expired", 400);
+        }
+
+        if (purpose === "register_email") {
+            await User.update({ email_verified: true }, { where: { user_id: userId } });
+        } else if (purpose === "register_phone") {
+            await User.update({ phone_verified: true }, { where: { user_id: userId } });
+        }
+
+        await otpRecord.destroy();
+
+        return true;
+    } catch (error) {
+        console.error("Error verifying OTP:", error);
+        throw error;
+    }
+
 }

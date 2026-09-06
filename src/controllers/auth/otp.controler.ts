@@ -1,6 +1,9 @@
 import { generateOTP } from "../../utils/otpGenrator.js";
+import type { Request, Response } from "express";
 import OTP from "../../models/otp.model.js";
 import AppError from "../../utils/errorHandling.js";
+import { verifyOtp } from "../../services/auth.service.js";
+import { ApiResponse } from "../../utils/apiResponse.js";
 
 export const sendOtp = async (userId: string, purpose: "login_email" | "login_phone" | "reset_password" | "register_email" | "register_phone") => {
     const otp = generateOTP();
@@ -17,5 +20,22 @@ export const sendOtp = async (userId: string, purpose: "login_email" | "login_ph
     } catch (error) {
         console.error("Error generating OTP:", error);
        throw new AppError("Failed to generate OTP", 500);
+    }
+}
+
+export const verifyMyOtp = async (req: Request, res: Response) => {
+    try {
+        const { userId, otpCode, purpose } = req.body;
+
+        const verify = await verifyOtp(userId, otpCode, purpose);
+
+        if (!verify) {
+            throw new AppError("Invalid or expired OTP", 400);
+        } 
+
+        ApiResponse(res, { message: "OTP verified successfully" }, "Success", 200);
+        
+    } catch (error) {
+        throw error;
     }
 }

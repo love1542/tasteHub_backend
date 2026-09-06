@@ -1,13 +1,13 @@
 import { Router } from "express";
 import { login, registerUser } from "../controllers/auth/register.controler.js";
 import { validateRequest } from "../middlewares/validation.middleware.js";
-import { credentialsSchema } from "../validations/auth.validation.js";
-import { sendOtp } from "../controllers/auth/otp.controler.js";
+import { credentialsSchema, otpVerificationSchema } from "../validations/auth.validation.js";
+import { sendOtp, verifyMyOtp } from "../controllers/auth/otp.controler.js";
 
 const authRouter = Router();
 
 authRouter.post("/register", validateRequest(credentialsSchema) , registerUser);
 authRouter.post("/login", login);
-// authRouter.get("/verify-otp", sendOtp);
+authRouter.post("/verify-otp", validateRequest(otpVerificationSchema), verifyMyOtp);
 
 export default authRouter;

@@ -14,3 +14,9 @@ export const credentialsSchema = z.discriminatedUnion("type", [
       .regex(/^[0-9]{10}$/, "Invalid phone number"),
   }).strict(),
 ]);
+
+export const otpVerificationSchema = z.object({
+  userId: z.string().uuid("Invalid user ID"),
+  otpCode: z.string().length(6, "OTP code must be 6 digits"),
+  purpose: z.enum(["login_email", "login_phone", "reset_password", "register_email", "register_phone"]),
+}).strict();
