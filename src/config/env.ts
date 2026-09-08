@@ -22,5 +22,11 @@ export const env = {
   },
 
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET,
-  accessTokenSecret: process.env.ACCESS_TOKEN_SECRET 
+  accessTokenSecret: process.env.ACCESS_TOKEN_SECRET, 
+
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_NAME || "",
+    apiKey: process.env.CLOUDINARY_API_KEY || "",
+    apiSecret: process.env.CLOUDINARY_API_SECRET || ""
+  }
 };

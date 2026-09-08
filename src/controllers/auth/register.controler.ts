@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { ApiResponse } from "../../utils/apiResponse.js";
 import { createUser } from "../../services/auth.service.js";
 import { sendOtp } from "./otp.controler.js";
+import { uploadCloudinary } from "../../services/cloudinary.service.js";
 
 export const login = async (req: Request, res: Response) => {
   res.json({
@@ -26,6 +27,13 @@ export const registerUser = async (req: Request, res: Response) => {
 export const completeRegistration = async (req: Request, res: Response) => {
     const { fullName, gender, dateOfBirth } = req.body;
     const profileImage = req.file ? req.file.filename : null;
+    try {
+        const image = await uploadCloudinary(req.file?.path ?? "/upload", "tastehub/profile")
 
-    ApiResponse(res, { fullName, gender, dateOfBirth, profileImage }, "Registration completed successfully", 200);
+         ApiResponse(res, { fullName, gender, dateOfBirth, profileImage, image }, "Registration completed successfully", 200);
+    } catch (error) {
+        console.log(error)
+        throw error;
+    }
+
 }
