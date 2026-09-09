@@ -21,19 +21,46 @@ export const otpVerificationSchema = z.object({
   purpose: z.enum(["login_email", "login_phone", "reset_password", "register_email", "register_phone"]),
 }).strict();
 
-export const completeRegistrationSchema = z.object({
-  fullName: z
-    .string()
-    .min(1, "Full name is required")
-    .min(3, "Full name must be at least 3 characters")
-    .max(50, "Full name must be at most 50 characters"),
+export const completeRegistrationSchema = z.discriminatedUnion("imageType", [
+  z.object({
+    fullName: z
+      .string()
+      .min(1, "Full name is required")
+      .min(3, "Full name must be at least 3 characters")
+      .max(50, "Full name must be at most 50 characters"),
 
-  gender: z.enum(["male", "female", "other"]),
+    gender: z
+      .enum(["male", "female", "other"]),
 
-  dateOfBirth: z
-  .string()
-  .regex(
-    /^(0[1-9]|[12]\d|3[01])-(0[1-9]|1[0-2])-\d{4}$/,
-    "Date of birth must be in DD-MM-YYYY format"
-  )
-});
+    dateOfBirth: z
+      .string()
+      .regex(
+        /^(0[1-9]|[12]\d|3[01])-(0[1-9]|1[0-2])-\d{4}$/,
+        "Date of birth must be in DD-MM-YYYY format"
+      ),
+
+    imageType: z.literal("default"),
+
+    imageId: z
+      .string()
+      .min(1, "Image_id is required"),
+
+  }).strict(),
+
+  z.object({
+    fullName: z
+      .string()
+      .min(1, "Full name is required")
+      .min(3, "Full name must be at least 3 characters")
+      .max(50, "Full name must be at most 50 characters"),
+
+    gender: z.enum(["male", "female", "other"]),
+    dateOfBirth: z
+      .string()
+      .regex(
+        /^(0[1-9]|[12]\d|3[01])-(0[1-9]|1[0-2])-\d{4}$/,
+        "Date of birth must be in DD-MM-YYYY format"
+      ),
+    imageType: z.literal("uploaded"),
+  }).strict(),
+]);
