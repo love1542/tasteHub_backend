@@ -5,6 +5,8 @@ import { sendOtp } from "./otp.controler.js";
 import { uploadCloudinary } from "../../services/cloudinary.service.js";
 import AppError from "../../utils/errorHandling.js";
 import DEFAULT_IMAGES from "../../models/defaultImages.model.js";
+import User from "../../models/user.model.js";
+import { getUserById } from "../../utils/userById.js";
 
 export const login = async (req: Request, res: Response) => {
     res.json({
@@ -28,8 +30,8 @@ export const registerUser = async (req: Request, res: Response) => {
 
 export const completeRegistration = async (req: Request, res: Response) => {
     const { fullName, gender, dateOfBirth, imageType, imageId } = req.body;
-    console.log(req.file)
-
+    const user_id = res.locals.user_id;
+    
     try {
         let image: string | null = null
         let public_id: string | null = null
@@ -68,8 +70,18 @@ export const completeRegistration = async (req: Request, res: Response) => {
             image = imageData.imageUrl
         }
 
+        const user = await getUserById(user_id)
 
-        ApiResponse(res, { fullName, gender, dateOfBirth, image }, "Registration completed successfully", 200);
+        user.image_url = image
+        user.public_id = public_id
+        user.date_of_birth = dateOfBirth
+        user.gender = gender
+        user.full_name = fullName
+
+        await user.save()
+
+        ApiResponse(res, { user }, "Registration completed successfully", 200);
+
     } catch (error) {
         console.log(error)
         throw error;
