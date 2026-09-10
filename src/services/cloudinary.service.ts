@@ -5,7 +5,7 @@ import AppError from '../utils/errorHandling.js'
 export const uploadCloudinary = async (filePath: string, folder: string) => {
 
     if (!filePath) {
-        throw new AppError("server error", 500, "filepth is missing")
+        throw new AppError("server error", 400, "filepth is missing")
     }
 
     try {

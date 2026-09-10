@@ -8,7 +8,8 @@ class User extends Model {
   declare password: string | null;
   declare phone: string | null;
   declare full_name: string | null;
-  declare image: string | null;
+  declare image_url: string | null;
+  declare public_id: string | null
   declare gender: string | null;
   declare date_of_birth: Date | null;
   declare email_verified: boolean;
@@ -53,7 +54,12 @@ User.init(
       allowNull: true,
     },
 
-    image: {
+    image_url: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+
+    public_id: {
       type: DataTypes.STRING,
       allowNull: true,
     },

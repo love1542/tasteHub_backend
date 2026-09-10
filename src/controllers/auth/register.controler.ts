@@ -4,6 +4,7 @@ import { createUser } from "../../services/auth.service.js";
 import { sendOtp } from "./otp.controler.js";
 import { uploadCloudinary } from "../../services/cloudinary.service.js";
 import AppError from "../../utils/errorHandling.js";
+import DEFAULT_IMAGES from "../../models/defaultImages.model.js";
 
 export const login = async (req: Request, res: Response) => {
     res.json({
@@ -26,11 +27,13 @@ export const registerUser = async (req: Request, res: Response) => {
 };
 
 export const completeRegistration = async (req: Request, res: Response) => {
-    const { fullName, gender, dateOfBirth, imageType } = req.body;
+    const { fullName, gender, dateOfBirth, imageType, imageId } = req.body;
     console.log(req.file)
 
     try {
-        let image: string = ""
+        let image: string | null = null
+        let public_id: string | null = null
+
         if (imageType === "uploaded") {
 
             if (!req.file) {
@@ -43,6 +46,7 @@ export const completeRegistration = async (req: Request, res: Response) => {
             const imageData = await uploadCloudinary(req.file?.path, "tastehub_test/profile/user_images")
             image = imageData.secure_url
 
+            public_id = imageData.public_id
         }
 
         if (imageType == "default") {
@@ -53,8 +57,15 @@ export const completeRegistration = async (req: Request, res: Response) => {
                 );
             }
 
-            
+            const imageData = await DEFAULT_IMAGES.findOne({ where: { id: imageId } })
 
+            if (!imageData) {
+                throw new AppError(
+                    "please check default image",
+                    400
+                );
+            }
+            image = imageData.imageUrl
         }
 
 

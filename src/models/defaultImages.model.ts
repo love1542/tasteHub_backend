@@ -5,19 +5,25 @@ class DEFAULT_IMAGES extends Model {
     declare id: string;
     declare name: string;
     declare imageUrl: string;
+    declare publicId: string;
     declare isActive: boolean;
 }
 
 DEFAULT_IMAGES.init({
     id: {
         type: DataTypes.STRING,
-        allowNull: false
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true
     },
     name: {
         type: DataTypes.STRING,
         allowNull: false
     },
     imageUrl: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    publicId: {
         type: DataTypes.STRING,
         allowNull: false
     },
@@ -31,3 +37,5 @@ DEFAULT_IMAGES.init({
 
 }
 )
+
+export default DEFAULT_IMAGES
