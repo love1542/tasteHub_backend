@@ -7,6 +7,7 @@ import AppError from "../../utils/errorHandling.js";
 import DEFAULT_IMAGES from "../../models/defaultImages.model.js";
 import User from "../../models/user.model.js";
 import { getUserById } from "../../utils/userById.js";
+import { verifyRefreshToken } from "../../utils/tokenManger.js";
 
 export const login = async (req: Request, res: Response) => {
     res.json({
@@ -88,3 +89,14 @@ export const completeRegistration = async (req: Request, res: Response) => {
     }
 
 }
+
+ export const getRefreshToken = async (req: Request, res: Response) => {
+    const {refreshToken} = req.body
+
+    if (!refreshToken) {
+        throw new AppError("please send refresh token", 400)
+    }
+
+    const decodeRefreshToken = verifyRefreshToken(refreshToken)
+
+ }
