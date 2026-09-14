@@ -1,9 +1,14 @@
 import type { ErrorRequestHandler } from "express";
+import fs from "fs/promises";
 import AppError from "../utils/errorHandling.js";
 import { MulterError } from "multer";
 import { ApiResponse } from "../utils/apiResponse.js";
 
-const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
+const errorHandler: ErrorRequestHandler = async (error, req, res, _next) => {
+
+	if (req.file?.path) {
+		await fs.unlink(req.file.path).catch(() => {});
+	}
 
 	if (error instanceof MulterError) {
 		if (error.code === "LIMIT_FILE_SIZE") {
