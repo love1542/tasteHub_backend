@@ -5,9 +5,9 @@ import { sendOtp } from "./otp.controler.js";
 import { uploadCloudinary } from "../../services/cloudinary.service.js";
 import AppError from "../../utils/errorHandling.js";
 import DEFAULT_IMAGES from "../../models/defaultImages.model.js";
-import User from "../../models/user.model.js";
 import { getUserById } from "../../utils/userById.js";
-import { verifyRefreshToken } from "../../utils/tokenManger.js";
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../../utils/tokenManger.js";
+import REFRESH_TOKENS from "../../models/refreshTokens.model.js";
 
 export const login = async (req: Request, res: Response) => {
     res.json({
@@ -30,9 +30,9 @@ export const registerUser = async (req: Request, res: Response) => {
 };
 
 export const completeRegistration = async (req: Request, res: Response) => {
-    const { fullName, gender, dateOfBirth, imageType, imageId } = req.body;
+    const { fullName, gender, dateOfBirth, imageType, imageId, deviceId } = req.body;
     const user_id = res.locals.user_id;
-    
+
     try {
         let image: string | null = null
         let public_id: string | null = null
@@ -81,7 +81,25 @@ export const completeRegistration = async (req: Request, res: Response) => {
 
         await user.save()
 
-        ApiResponse(res, { user }, "Registration completed successfully", 200);
+        const refreshToken = generateRefreshToken(user_id)
+        const accessToken = generateAccessToken(user_id)
+        const expireAt = Date.now() + 7 * 24 * 60 * 60 * 1000
+
+        const {
+            password,
+            createdAt,
+            updatedAt,
+            ...userData
+        } = user.toJSON();
+
+        await REFRESH_TOKENS.create({
+            user_id: user_id,
+            refresh_token: refreshToken,
+            expires_at: expireAt,
+            device_id: deviceId,
+        })
+
+        ApiResponse(res, { userData, refreshToken, accessToken }, "Registration completed successfully", 200);
 
     } catch (error) {
         console.log(error)
@@ -90,8 +108,8 @@ export const completeRegistration = async (req: Request, res: Response) => {
 
 }
 
- export const getRefreshToken = async (req: Request, res: Response) => {
-    const {refreshToken} = req.body
+export const getRefreshToken = async (req: Request, res: Response) => {
+    const { refreshToken } = req.body
 
     if (!refreshToken) {
         throw new AppError("please send refresh token", 400)
@@ -99,4 +117,4 @@ export const completeRegistration = async (req: Request, res: Response) => {
 
     const decodeRefreshToken = verifyRefreshToken(refreshToken)
 
- }
+}
