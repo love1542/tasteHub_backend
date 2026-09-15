@@ -55,6 +55,16 @@ export const createHashedPassword = async (password: string): Promise<string> =>
     }
 }
 
+export const verifyHashedPassword = async (password: string, hashPass: string): Promise<boolean> => {
+    try {
+        const verify = await bcrypt.compare(password,hashPass)
+        return verify
+    } catch (error) {
+        console.error("Error hashing password:", error);
+        throw new AppError("Failed to compare hash password", 500);
+    }
+}
+
 
 export const verifyOtp = async (userId: string, otpCode: string, purpose: "login_email" | "login_phone" | "reset_password" | "register_email" | "register_phone") => {
     try {
@@ -86,6 +96,29 @@ export const verifyOtp = async (userId: string, otpCode: string, purpose: "login
     } catch (error) {
         console.error("Error verifying OTP:", error);
         throw error;
+    }
+
+}
+
+export const checkUserByEmailOrPhone = async (type: "phone" | "email", identifier: string): Promise<User> => {
+    try {
+        let user
+        if (type === "email") {
+            user = await User.findOne({ where: { email: identifier } })
+        }
+
+        if (type === "phone") {
+            user = await User.findOne({ where: { phone: identifier } })
+        }
+
+        if (!user) {
+            throw new AppError("Invalid credentials", 401, "Invalid email or phone")
+        }
+
+        return user
+    } catch (error) {
+        console.log("find user time error", error)
+        throw error
     }
 
 }

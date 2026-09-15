@@ -1,18 +1,41 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../utils/apiResponse.js";
-import { createUser } from "../../services/auth.service.js";
+import { checkUserByEmailOrPhone, createUser, verifyHashedPassword } from "../../services/auth.service.js";
 import { sendOtp } from "./otp.controler.js";
 import { uploadCloudinary } from "../../services/cloudinary.service.js";
 import AppError from "../../utils/errorHandling.js";
 import DEFAULT_IMAGES from "../../models/defaultImages.model.js";
 import { getUserById } from "../../utils/userById.js";
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../../utils/tokenManger.js";
+import { generateAccessToken, generateRefreshToken } from "../../utils/tokenManger.js";
 import REFRESH_TOKENS from "../../models/refreshTokens.model.js";
 
 export const login = async (req: Request, res: Response) => {
-    res.json({
-        message: "Login successful",
-    });
+    const { type, identifier, password } = req.body
+
+    try {
+        const user = await checkUserByEmailOrPhone(type, identifier)
+
+        if (type === "email" && user.email_verified) {
+            const verify = await verifyHashedPassword(password, user.password ?? "")
+            if (verify) {
+                await sendOtp(user.user_id, "login_email")
+                ApiResponse(res, "otp send successfully","", 200)
+            } else {
+                throw new AppError("wrong password", 401)
+            }
+        }
+
+        if (type === "phone" && user.phone_verified) {
+             await sendOtp(user.user_id, "login_phone")
+
+            ApiResponse(res, "otp send successfully","", 200)
+        }
+
+
+    } catch (error) {
+        throw error
+    }
+
 };
 
 export const registerUser = async (req: Request, res: Response) => {
@@ -131,7 +154,7 @@ export const getRefreshToken = async (req: Request, res: Response) => {
 
         await existToken.save()
 
-        ApiResponse(res, {refreshToken: newRefreshToken, accessToken: newAccessToken }, "", 200)
+        ApiResponse(res, { refreshToken: newRefreshToken, accessToken: newAccessToken }, "", 200)
     } catch (error) {
         console.log("refresh token time error", error)
         throw error

@@ -9,7 +9,7 @@ import { authenticate } from "../middlewares/authenticate.middleware.js";
 const authRouter = Router();
 
 authRouter.post("/register", validateRequest(credentialsSchema) , registerUser);
-authRouter.post("/login", login);
+authRouter.post("/login", validateRequest(credentialsSchema), login);
 authRouter.post("/verify-otp", validateRequest(otpVerificationSchema), verifyRegisterOtp);
 authRouter.post("/complete-registration",authenticate, upload.single("profileImage"), validateRequest(completeRegistrationSchema), completeRegistration);
 authRouter.post("/refresh-token", validateRequest(refreshTokenSchema), getRefreshToken)
