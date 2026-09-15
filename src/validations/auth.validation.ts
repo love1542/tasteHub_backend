@@ -59,7 +59,7 @@ export const completeRegistrationSchema = z.discriminatedUnion("imageType", [
       .max(50, "Full name must be at most 50 characters"),
 
     gender: z.enum(["male", "female", "other"]),
-    
+
     dateOfBirth: z
       .string()
       .regex(
@@ -78,5 +78,9 @@ export const completeRegistrationSchema = z.discriminatedUnion("imageType", [
 export const refreshTokenSchema = z.object({
     refreshToken: z
         .string()
-        .min(1, "Refresh token is required")
+        .min(1, "Refresh token is required"),
+
+      deviceId: z
+      .string()
+      .min(1, "deviceId is required"),
 });

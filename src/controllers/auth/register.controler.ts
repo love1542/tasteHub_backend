@@ -83,7 +83,7 @@ export const completeRegistration = async (req: Request, res: Response) => {
 
         const refreshToken = generateRefreshToken(user_id)
         const accessToken = generateAccessToken(user_id)
-        const expireAt = Date.now() + 7 * 24 * 60 * 60 * 1000
+        const expireAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
         const {
             password,
@@ -109,12 +109,30 @@ export const completeRegistration = async (req: Request, res: Response) => {
 }
 
 export const getRefreshToken = async (req: Request, res: Response) => {
-    const { refreshToken } = req.body
+    try {
+        const { refreshToken, deviceId } = req.body
 
-    if (!refreshToken) {
-        throw new AppError("please send refresh token", 400)
+        const existToken = await REFRESH_TOKENS.findOne({ where: { refresh_token: refreshToken, device_id: deviceId } })
+
+        if (!existToken) {
+            throw new AppError("Invalid Refresh Token", 401, "check your refresh token")
+        }
+
+        if (existToken.expires_at.getTime() < Date.now()) {
+            await existToken.destroy()
+            throw new AppError("Login again", 401, "expire user session");
+        }
+
+        const newRefreshToken = generateRefreshToken(existToken.user_id)
+        const newAccessToken = generateRefreshToken(existToken.user_id)
+
+        existToken.refresh_token = newRefreshToken
+        existToken.expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+
+        ApiResponse(res, {refreshToken: newRefreshToken, accessToken: newAccessToken }, "", 200)
+    } catch (error) {
+        console.log("refresh token time error", error)
+        throw error
     }
-
-    const decodeRefreshToken = verifyRefreshToken(refreshToken)
 
 }
