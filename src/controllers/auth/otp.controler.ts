@@ -4,7 +4,18 @@ import OTP from "../../models/otp.model.js";
 import AppError from "../../utils/errorHandling.js";
 import { verifyOtp } from "../../services/auth.service.js";
 import { ApiResponse } from "../../utils/apiResponse.js";
-import { generateAccessToken } from "../../utils/tokenManger.js";
+import { generateAccessToken, generateRefreshToken } from "../../utils/tokenManger.js";
+import { getRefreshToken } from "./register.controler.js";
+import REFRESH_TOKENS from "../../models/refreshTokens.model.js";
+
+type OtpPurpose = "login_email" | "login_phone" | "reset_password" | "register_email" | "register_phone";
+
+type OtpVerificationBody = {
+    userId: string;
+    otpCode: string;
+    purpose: OtpPurpose;
+    deviceId?: string;
+};
 
 export const sendOtp = async (userId: string, purpose: "login_email" | "login_phone" | "reset_password" | "register_email" | "register_phone") => {
     const otp = generateOTP();
@@ -13,31 +24,65 @@ export const sendOtp = async (userId: string, purpose: "login_email" | "login_ph
     try {
         await OTP.create({
             user_id: userId,
-            otp_code: otp, 
-            purpose: purpose, 
+            otp_code: otp,
+            purpose: purpose,
             expiras_at: new Date(Date.now() + 5 * 60 * 1000), // Set expiration time (e.g., 5 minutes from now)
         });
 
     } catch (error) {
         console.error("Error generating OTP:", error);
-       throw new AppError("Failed to generate OTP", 500);
+        throw new AppError("Failed to generate OTP", 500);
     }
 }
 
-export const verifyRegisterOtp = async (req: Request, res: Response) => {
+export const verifyRegisterOtp = async (req: Request<{}, {}, OtpVerificationBody>, res: Response) => {
     try {
-        const { userId, otpCode, purpose } = req.body;
+        const { userId, otpCode, purpose, deviceId } = req.body;
 
         const verify = await verifyOtp(userId, otpCode, purpose);
 
         if (!verify) {
             throw new AppError("Invalid or expired OTP", 400);
-        } 
+        }
 
-        const accessToken = generateAccessToken(userId);
+        switch (purpose) {
+            case "register_email":
+            case "register_phone": {
+                const accessToken = generateAccessToken(userId);
 
-        ApiResponse(res, { message: "OTP verified successfully", data: { access_token: accessToken } }, "Success", 200);
-        
+                ApiResponse(res, { message: "OTP verified successfully", data: { access_token: accessToken } }, "Success", 200);
+            }
+
+            case "login_email":
+            case "login_phone": {
+
+                if (!deviceId) {
+                    throw new AppError("invalid request", 400, "deviceId not found")
+                }
+
+                const accessToken = generateAccessToken(userId);
+                const refreshToken = generateRefreshToken(userId);
+                const newExpireDate = new Date(Date.now() + 5 * 60 * 1000)
+
+                const oldToken = await REFRESH_TOKENS.findOne({where: {user_id: userId, device_id: deviceId}})
+
+                if(!oldToken) {
+                    throw new AppError("invalid cerdentials", 401, "Account not activate")
+                }
+
+                oldToken.refresh_token = refreshToken
+                oldToken.expires_at = newExpireDate
+
+                await oldToken.save()
+
+                ApiResponse(res,{accessToken, refreshToken}, "OTP verified successfully",200)
+            }
+            default:
+                throw new AppError("Invalid Purpose", 400);
+        }
+
+
+
     } catch (error) {
         throw error;
     }
