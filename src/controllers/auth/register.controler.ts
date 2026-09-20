@@ -44,8 +44,6 @@ export const registerUser = async (req: Request, res: Response) => {
     try {
         const newUser = await createUser(type, identifier, password);
 
-        await sendOtp(newUser.user_id, type === "email" ? "register_email" : "register_phone");
-
         ApiResponse(res, newUser, "OTP Sent Successfully", 201);
     } catch (error) {
         throw error;

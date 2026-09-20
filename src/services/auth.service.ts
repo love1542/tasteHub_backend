@@ -1,7 +1,9 @@
+import { sendOtp } from "../controllers/auth/otp.controler.js";
 import OTP from "../models/otp.model.js";
 import User from "../models/user.model.js";
 import AppError from "../utils/errorHandling.js";
 import bcrypt from "bcrypt"
+import { generateOTP } from "../utils/otpGenrator.js";
 
 export const createUser = async (type: string, identifier: string, password?: string) => {
     try {
@@ -10,18 +12,64 @@ export const createUser = async (type: string, identifier: string, password?: st
         if (type === "email") {
             const existingUser = await User.findOne({ where: { email: identifier } });
             if (existingUser) {
-                throw new AppError("User already exists", 401);
+                if (!existingUser.email_verified) {
+                    const otp = generateOTP()
+                    console.log(otp)
+                    const oldOtp = await OTP.findOne({ where: { user_id: existingUser.user_id } })
+                    if (oldOtp) {
+                        oldOtp.expiras_at = new Date(Date.now() + 5 * 60 * 1000)
+                        oldOtp.otp_code = otp
+
+                        await oldOtp.save()
+
+                        return {
+                            user_id: existingUser.user_id,
+                        };
+
+                    } else {
+                        await sendOtp(existingUser.user_id, "register_email");
+                        return {
+                            user_id: existingUser.user_id,
+                        };
+                    }
+                } else {
+                    throw new AppError("User already exists", 401);
+                }
             }
             const hashedPassword = password ? await createHashedPassword(password) : undefined;
             newUser = await User.create({ email: identifier, password: hashedPassword });
+            await sendOtp(newUser.user_id, "register_email");
 
         } else if (type === "phone") {
             const existingUser = await User.findOne({ where: { phone: identifier } });
             if (existingUser) {
-                throw new AppError("User already exists", 401);
+                if (!existingUser.phone_verified) {
+                    const otp = generateOTP()
+                    console.log(otp)
+                    const oldOtp = await OTP.findOne({ where: { user_id: existingUser.user_id } })
+                    if (oldOtp) {
+                        oldOtp.expiras_at = new Date(Date.now() + 5 * 60 * 1000)
+                        oldOtp.otp_code = otp
+
+                        await oldOtp.save()
+
+                        return {
+                            user_id: existingUser.user_id,
+                        };
+                        
+                    } else {
+                        await sendOtp(existingUser.user_id, "register_phone");
+                        return {
+                            user_id: existingUser.user_id,
+                        };
+                    }
+                } else {
+                    throw new AppError("User already exists", 401);
+                }
             }
 
             newUser = await User.create({ phone: identifier });
+            await sendOtp(newUser.user_id, "register_phone");
 
         } else {
             console.error("Invalid type. Must be 'email' or 'phone'.");
@@ -30,12 +78,6 @@ export const createUser = async (type: string, identifier: string, password?: st
 
         const data = {
             user_id: newUser.user_id,
-            phone: newUser.phone,
-            email: newUser.email,
-            email_verified: newUser.email_verified,
-            phone_verified: newUser.phone_verified,
-            created_at: newUser.createdAt,
-            updated_at: newUser.updatedAt
         }
 
         return data;
@@ -57,7 +99,7 @@ export const createHashedPassword = async (password: string): Promise<string> =>
 
 export const verifyHashedPassword = async (password: string, hashPass: string): Promise<boolean> => {
     try {
-        const verify = await bcrypt.compare(password,hashPass)
+        const verify = await bcrypt.compare(password, hashPass)
         return verify
     } catch (error) {
         console.error("Error hashing password:", error);
