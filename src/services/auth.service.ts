@@ -16,6 +16,7 @@ export const createUser = async (type: string, identifier: string, password?: st
                     const otp = generateOTP()
                     console.log(otp)
                     const oldOtp = await OTP.findOne({ where: { user_id: existingUser.user_id } })
+                    console.log("OLDOTP", oldOtp)
                     if (oldOtp) {
                         oldOtp.expiras_at = new Date(Date.now() + 5 * 60 * 1000)
                         oldOtp.otp_code = otp

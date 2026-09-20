@@ -8,7 +8,7 @@ import { generateAccessToken, generateRefreshToken } from "../../utils/tokenMang
 import { getRefreshToken } from "./register.controler.js";
 import REFRESH_TOKENS from "../../models/refreshTokens.model.js";
 
-type OtpPurpose = "login_phone" | "reset_password" | "register_email" | "register_phone";
+type OtpPurpose = "login_phone" | "login_email" | "reset_password" | "register_email" | "register_phone";
 
 type OtpVerificationBody = {
     userId: string;
@@ -39,6 +39,10 @@ export const verifyRegisterOtp = async (req: Request<{}, {}, OtpVerificationBody
     try {
         const { userId, otpCode, purpose, deviceId } = req.body;
 
+        if ( (purpose === "login_phone" || purpose === "login_email") && !deviceId ) {
+            throw new AppError("invalid request", 400, "deviceId not found")
+        }
+
         const verify = await verifyOtp(userId, otpCode, purpose);
 
         if (!verify) {
@@ -48,10 +52,7 @@ export const verifyRegisterOtp = async (req: Request<{}, {}, OtpVerificationBody
         switch (purpose) {
             case "register_email":
             case "register_phone": {
-                if (!deviceId) {
-                    throw new AppError("invalid request", 400, "deviceId not found")
-                }
-                
+
                 const accessToken = generateAccessToken(userId);
 
                 ApiResponse(res, { message: "OTP verified successfully", data: { access_token: accessToken } }, "Success", 200);
@@ -59,17 +60,14 @@ export const verifyRegisterOtp = async (req: Request<{}, {}, OtpVerificationBody
 
             case "login_phone": {
 
-                if (!deviceId) {
-                    throw new AppError("invalid request", 400, "deviceId not found")
-                }
 
                 const accessToken = generateAccessToken(userId);
                 const refreshToken = generateRefreshToken(userId);
                 const newExpireDate = new Date(Date.now() + 5 * 60 * 1000)
 
-                const oldToken = await REFRESH_TOKENS.findOne({where: {user_id: userId, device_id: deviceId}})
+                const oldToken = await REFRESH_TOKENS.findOne({ where: { user_id: userId, device_id: deviceId } })
 
-                if(!oldToken) {
+                if (!oldToken) {
                     throw new AppError("invalid cerdentials", 401, "Account not activate")
                 }
 
@@ -78,7 +76,7 @@ export const verifyRegisterOtp = async (req: Request<{}, {}, OtpVerificationBody
 
                 await oldToken.save()
 
-                ApiResponse(res,{accessToken, refreshToken}, "OTP verified successfully",200)
+                ApiResponse(res, { accessToken, refreshToken }, "OTP verified successfully", 200)
             }
             default:
                 throw new AppError("Invalid Purpose", 400);
