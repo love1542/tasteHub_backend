@@ -55,7 +55,7 @@ export const verifyRegisterOtp = async (req: Request<{}, {}, OtpVerificationBody
 
                 const accessToken = generateAccessToken(userId);
 
-                ApiResponse(res, { message: "OTP verified successfully", data: { access_token: accessToken } }, "Success", 200);
+                ApiResponse(res, {access_token: accessToken}, "Otp verify Successfully", 200);
             }
 
             case "login_phone": {
