@@ -22,6 +22,17 @@ export const otpVerificationSchema = z.object({
   deviceId: z.string().optional()
 }).strict();
 
+const dateOfBirthSchema = z
+  .string()
+  .regex(
+    /^(0[1-9]|[12]\d|3[01])-(0[1-9]|1[0-2])-\d{4}$/,
+    "Date of birth must be in DD-MM-YYYY format"
+  )
+  .transform((date) => {
+    const [day, month, year] = date.split("-");
+    return `${year}-${month}-${day}`;
+  });
+
 export const completeRegistrationSchema = z.discriminatedUnion("imageType", [
   z.object({
     fullName: z
@@ -33,12 +44,7 @@ export const completeRegistrationSchema = z.discriminatedUnion("imageType", [
     gender: z
       .enum(["male", "female", "other"]),
 
-    dateOfBirth: z
-      .string()
-      .regex(
-        /^(0[1-9]|[12]\d|3[01])-(0[1-9]|1[0-2])-\d{4}$/,
-        "Date of birth must be in DD-MM-YYYY format"
-      ),
+    dateOfBirth: dateOfBirthSchema,
 
     imageType: z.literal("default"),
 
@@ -61,12 +67,7 @@ export const completeRegistrationSchema = z.discriminatedUnion("imageType", [
 
     gender: z.enum(["male", "female", "other"]),
 
-    dateOfBirth: z
-      .string()
-      .regex(
-        /^(0[1-9]|[12]\d|3[01])-(0[1-9]|1[0-2])-\d{4}$/,
-        "Date of birth must be in DD-MM-YYYY format"
-      ),
+    dateOfBirth: dateOfBirthSchema,
 
       deviceId: z
       .string()
