@@ -18,16 +18,50 @@ type OtpVerificationBody = {
 };
 
 export const sendOtp = async (userId: string, purpose: "login_email" | "login_phone" | "reset_password" | "register_email" | "register_phone") => {
-    const otp = generateOTP();
-    // Do something with the generated OTP, e.g., send it via email or SMS
-    console.log("Generated OTP:", otp);
     try {
-        await OTP.create({
-            user_id: userId,
-            otp_code: otp,
-            purpose: purpose,
-            expiras_at: new Date(Date.now() + 5 * 60 * 1000), // Set expiration time (e.g., 5 minutes from now)
-        });
+        const oldOtp = await OTP.findOne({ where: { user_id: userId, purpose: purpose } })
+
+        if (!oldOtp) {
+            const otp = generateOTP();
+            // Do something with the generated OTP, e.g., send it via email or SMS
+            console.log("Generated OTP:", otp);
+            await OTP.create({
+                user_id: userId,
+                otp_code: otp,
+                purpose: purpose,
+                expiras_at: new Date(Date.now() + 5 * 60 * 1000), // Set expiration time (e.g., 5 minutes from now)
+                last_sent_at: new Date(Date.now()),
+                rate_limit_reset_at: new Date(Date.now() + 10 * 60 * 1000)
+            });
+
+            return
+        }
+
+        if (oldOtp.rate_limit_reset_at <= new Date(Date.now())) {
+
+            const otp = generateOTP();
+
+            console.log("Generated OTP:", otp);
+
+            oldOtp.otp_code = otp;
+            oldOtp.attempts = 0;
+            oldOtp.send_count = 1;
+            oldOtp.expiras_at = new Date(
+                Date.now() + 5 * 60 * 1000
+            );
+            oldOtp.last_sent_at = new Date(Date.now());
+            oldOtp.rate_limit_reset_at = new Date(
+                Date.now() + 10 * 60 * 1000
+            );
+
+            await oldOtp.save();
+
+            return;
+        }
+
+        if (oldOtp.send_count >= 3) {
+            throw new AppError("Too many requests, please try after some time", 429)
+        }
 
     } catch (error) {
         console.error("Error generating OTP:", error);
@@ -39,7 +73,7 @@ export const verifyRegisterOtp = async (req: Request<{}, {}, OtpVerificationBody
     try {
         const { userId, otpCode, purpose, deviceId } = req.body;
 
-        if ( (purpose === "login_phone" || purpose === "login_email") && !deviceId ) {
+        if ((purpose === "login_phone" || purpose === "login_email") && !deviceId) {
             throw new AppError("invalid request", 400, "deviceId not found")
         }
 
@@ -55,7 +89,7 @@ export const verifyRegisterOtp = async (req: Request<{}, {}, OtpVerificationBody
 
                 const accessToken = generateAccessToken(userId);
 
-                ApiResponse(res, {access_token: accessToken}, "Otp verify Successfully", 200);
+                ApiResponse(res, { access_token: accessToken }, "Otp verify Successfully", 200);
             }
 
             case "login_phone": {
