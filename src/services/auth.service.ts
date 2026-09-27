@@ -115,12 +115,21 @@ export const verifyOtp = async (userId: string, otpCode: string, purpose: "login
             where: {
                 user_id: userId,
                 purpose: purpose,
-                otp_code: otpCode,
             },
         });
 
         if (!otpRecord) {
-            throw new AppError("Invalid OTP", 400);
+            throw new AppError("Please resend otp", 400);
+        }
+
+        if (otpRecord.attempts >= 4) {
+            throw new AppError("try again after some time", 429);
+        }
+
+        if (otpRecord.otp_code !== otpCode) {
+            otpRecord.attempts += 1
+            await otpRecord.save()
+            throw new AppError("invalid Otp", 400);
         }
 
         if (otpRecord.expiras_at < new Date()) {
