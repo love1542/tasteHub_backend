@@ -5,13 +5,13 @@ import AppError from "../../utils/errorHandling.js";
 import { verifyOtp } from "../../services/auth.service.js";
 import { ApiResponse } from "../../utils/apiResponse.js";
 import { generateAccessToken, generateRefreshToken } from "../../utils/tokenManger.js";
-import { getRefreshToken } from "./register.controler.js";
 import REFRESH_TOKENS from "../../models/refreshTokens.model.js";
 
 type OtpPurpose = "login_phone" | "login_email" | "reset_password" | "register_email" | "register_phone";
 
 type OtpVerificationBody = {
-    userId: string;
+    type: "email" | "phone";
+    identifier: string;
     otpCode: string;
     purpose: OtpPurpose;
     deviceId?: string;
@@ -69,48 +69,48 @@ export const sendOtp = async (userId: string, purpose: "login_email" | "login_ph
     }
 }
 
-export const verifyRegisterOtp = async (req: Request<{}, {}, OtpVerificationBody>, res: Response) => {
+export const verifyOtpCode = async (req: Request<{}, {}, OtpVerificationBody>, res: Response) => {
     try {
-        const { userId, otpCode, purpose, deviceId } = req.body;
+        const { type, identifier, otpCode, purpose, deviceId } = req.body;
 
         if ((purpose === "login_phone" || purpose === "login_email") && !deviceId) {
-            throw new AppError("invalid request", 400, "deviceId not found")
+            throw new AppError("Invalid request", 400, "deviceId not found");
         }
 
-        const verify = await verifyOtp(userId, otpCode, purpose);
-
-        if (!verify) {
-            throw new AppError("Invalid or expired OTP", 400);
-        }
+        const userId = await verifyOtp(type, identifier, otpCode, purpose);
 
         switch (purpose) {
             case "register_email":
             case "register_phone": {
-
                 const accessToken = generateAccessToken(userId);
-
-                ApiResponse(res, { access_token: accessToken }, "Otp verify Successfully", 200);
+                return ApiResponse(res, { access_token: accessToken }, "OTP verified successfully", 200);
             }
-
+            case "login_email":
             case "login_phone": {
-
-
                 const accessToken = generateAccessToken(userId);
                 const refreshToken = generateRefreshToken(userId);
-                const newExpireDate = new Date(Date.now() + 5 * 60 * 1000)
+                const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                const existingToken = await REFRESH_TOKENS.findOne({
+                    where: { user_id: userId, device_id: deviceId! },
+                });
 
-                const oldToken = await REFRESH_TOKENS.findOne({ where: { user_id: userId, device_id: deviceId } })
-
-                if (!oldToken) {
-                    throw new AppError("invalid cerdentials", 401, "Account not activate")
+                if (existingToken) {
+                    existingToken.refresh_token = refreshToken;
+                    existingToken.expires_at = expiresAt;
+                    await existingToken.save();
+                } else {
+                    await REFRESH_TOKENS.create({
+                        user_id: userId,
+                        refresh_token: refreshToken,
+                        expires_at: expiresAt,
+                        device_id: deviceId!,
+                    });
                 }
 
-                oldToken.refresh_token = refreshToken
-                oldToken.expires_at = newExpireDate
-
-                await oldToken.save()
-
-                ApiResponse(res, { accessToken, refreshToken }, "OTP verified successfully", 200)
+                return ApiResponse(res, { access_token: accessToken, refresh_token: refreshToken }, "OTP verified successfully", 200);
+            }
+            case "reset_password": {
+                return ApiResponse(res, { verified: true }, "OTP verified successfully", 200);
             }
             default:
                 throw new AppError("Invalid Purpose", 400);

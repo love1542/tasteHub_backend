@@ -16,11 +16,28 @@ export const credentialsSchema = z.discriminatedUnion("type", [
 ]);
 
 export const otpVerificationSchema = z.object({
-  userId: z.string().uuid("Invalid user ID"),
+  type: z.enum(["email", "phone"]),
+  identifier: z.string().min(1, "Email or phone is required"),
   otpCode: z.string().length(6, "OTP code must be 6 digits"),
   purpose: z.enum(["login_email", "login_phone", "reset_password", "register_email", "register_phone"]),
   deviceId: z.string().optional()
-}).strict();
+}).strict().superRefine((data, context) => {
+  if (data.type === "email" && !z.string().email().safeParse(data.identifier).success) {
+    context.addIssue({ code: "custom", path: ["identifier"], message: "Invalid email" });
+  }
+
+  if (data.type === "phone" && !/^\d{10}$/.test(data.identifier)) {
+    context.addIssue({ code: "custom", path: ["identifier"], message: "Invalid phone number" });
+  }
+
+  if (data.purpose.endsWith("_email") && data.type !== "email") {
+    context.addIssue({ code: "custom", path: ["type"], message: "Email purpose requires an email identifier" });
+  }
+
+  if (data.purpose.endsWith("_phone") && data.type !== "phone") {
+    context.addIssue({ code: "custom", path: ["type"], message: "Phone purpose requires a phone identifier" });
+  }
+});
 
 const dateOfBirthSchema = z
   .string()

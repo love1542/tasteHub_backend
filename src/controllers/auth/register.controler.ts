@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../utils/apiResponse.js";
-import { checkUserByEmailOrPhone, createUser, verifyHashedPassword } from "../../services/auth.service.js";
+import { assertAccountCanLogin, checkUserByEmailOrPhone, createUser, verifyHashedPassword } from "../../services/auth.service.js";
 import { sendOtp } from "./otp.controler.js";
 import { uploadCloudinary } from "../../services/cloudinary.service.js";
 import AppError from "../../utils/errorHandling.js";
@@ -14,21 +14,21 @@ export const login = async (req: Request, res: Response) => {
 
     try {
         const user = await checkUserByEmailOrPhone(type, identifier)
+        assertAccountCanLogin(user, type);
 
-        if (type === "email" && user.email_verified) {
+        if (type === "email") {
             const verify = await verifyHashedPassword(password, user.password ?? "")
             if (verify) {
                 await sendOtp(user.user_id, "login_email")
-                ApiResponse(res, "otp send successfully","", 200)
+                return ApiResponse(res, "otp send successfully", "", 200)
             } else {
                 throw new AppError("wrong password", 401)
             }
         }
 
-        if (type === "phone" && user.phone_verified) {
-             await sendOtp(user.user_id, "login_phone")
-
-            ApiResponse(res, "otp send successfully","", 200)
+        if (type === "phone") {
+            await sendOtp(user.user_id, "login_phone")
+            return ApiResponse(res, "otp send successfully", "", 200)
         }
 
 

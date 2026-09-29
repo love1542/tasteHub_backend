@@ -108,18 +108,59 @@ export const verifyHashedPassword = async (password: string, hashPass: string): 
     }
 }
 
+export const assertAccountCanLogin = (user: User, type: "email" | "phone"): void => {
+    const identifierVerified = type === "email" ? user.email_verified : user.phone_verified;
 
-export const verifyOtp = async (userId: string, otpCode: string, purpose: "login_email" | "login_phone" | "reset_password" | "register_email" | "register_phone") => {
+    if (!identifierVerified) {
+        throw new AppError(`Please verify your ${type} before logging in`, 403);
+    }
+
+    const profileComplete = Boolean(
+        user.full_name && user.gender && user.date_of_birth && user.image_url
+    );
+
+    if (!profileComplete) {
+        throw new AppError("Please complete your registration before logging in", 403);
+    }
+};
+
+
+export const verifyOtp = async (
+    type: "email" | "phone",
+    identifier: string,
+    otpCode: string,
+    purpose: "login_email" | "login_phone" | "reset_password" | "register_email" | "register_phone"
+): Promise<string> => {
     try {
+        const user = await User.findOne({
+            where: type === "email" ? { email: identifier } : { phone: identifier },
+        });
+
+        if (!user) {
+            throw new AppError("Invalid or expired OTP", 400);
+        }
+
+        if (
+            ((purpose === "login_email" || purpose === "register_email") && type !== "email") ||
+            ((purpose === "login_phone" || purpose === "register_phone") && type !== "phone")
+        ) {
+            throw new AppError("OTP purpose does not match identifier type", 400);
+        }
+
         const otpRecord = await OTP.findOne({
             where: {
-                user_id: userId,
+                user_id: user.user_id,
                 purpose: purpose,
             },
         });
 
         if (!otpRecord) {
             throw new AppError("Please resend otp", 400);
+        }
+
+        if (otpRecord.expiras_at < new Date()) {
+            await otpRecord.destroy();
+            throw new AppError("OTP has expired", 400);
         }
 
         if (otpRecord.attempts >= 4) {
@@ -132,19 +173,15 @@ export const verifyOtp = async (userId: string, otpCode: string, purpose: "login
             throw new AppError("invalid Otp", 400);
         }
 
-        if (otpRecord.expiras_at < new Date()) {
-            throw new AppError("OTP has expired", 400);
-        }
-
         if (purpose === "register_email") {
-            await User.update({ email_verified: true }, { where: { user_id: userId } });
+            await User.update({ email_verified: true }, { where: { user_id: user.user_id } });
         } else if (purpose === "register_phone") {
-            await User.update({ phone_verified: true }, { where: { user_id: userId } });
+            await User.update({ phone_verified: true }, { where: { user_id: user.user_id } });
         }
 
         await otpRecord.destroy();
 
-        return true;
+        return user.user_id;
     } catch (error) {
         console.error("Error verifying OTP:", error);
         throw error;
