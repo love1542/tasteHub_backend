@@ -10,7 +10,7 @@ import { generateAccessToken, generateRefreshToken } from "../../utils/tokenMang
 import REFRESH_TOKENS from "../../models/refreshTokens.model.js";
 
 export const login = async (req: Request, res: Response) => {
-    const { type, identifier, password } = req.body
+    const { type, identifier, password, deviceId } = req.body
 
     try {
         const user = await checkUserByEmailOrPhone(type, identifier)
@@ -19,8 +19,27 @@ export const login = async (req: Request, res: Response) => {
         if (type === "email") {
             const verify = await verifyHashedPassword(password, user.password ?? "")
             if (verify) {
-                await sendOtp(user.user_id, "login_email")
-                return ApiResponse(res, "otp send successfully", "", 200)
+                const accessToken = generateAccessToken(user.user_id)
+                const refreshToken = generateRefreshToken(user.user_id)
+                const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                const existingToken = await REFRESH_TOKENS.findOne({
+                    where: { user_id: user.user_id, device_id: deviceId },
+                })
+
+                if (existingToken) {
+                    existingToken.refresh_token = refreshToken
+                    existingToken.expires_at = expiresAt
+                    await existingToken.save()
+                } else {
+                    await REFRESH_TOKENS.create({
+                        user_id: user.user_id,
+                        refresh_token: refreshToken,
+                        expires_at: expiresAt,
+                        device_id: deviceId,
+                    })
+                }
+
+                return ApiResponse(res, {accessToken, refreshToken }, "Login successful", 200)
             } else {
                 throw new AppError("wrong password", 401)
             }
@@ -106,13 +125,6 @@ export const completeRegistration = async (req: Request, res: Response) => {
         const accessToken = generateAccessToken(user_id)
         const expireAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
-        const {
-            password,
-            createdAt,
-            updatedAt,
-            ...userData
-        } = user.toJSON();
-
         await REFRESH_TOKENS.create({
             user_id: user_id,
             refresh_token: refreshToken,
@@ -120,7 +132,7 @@ export const completeRegistration = async (req: Request, res: Response) => {
             device_id: deviceId,
         })
 
-        ApiResponse(res, { userData, refreshToken, accessToken }, "Registration completed successfully", 200);
+        ApiResponse(res, { refreshToken, accessToken }, "Registration completed successfully", 200);
 
     } catch (error) {
         console.log(error)

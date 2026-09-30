@@ -30,7 +30,7 @@ OTP.init(
             allowNull: false,
         },
         purpose: {
-            type: DataTypes.ENUM("login_email", "login_phone", "reset_password", "register_email", "register_phone"),
+            type: DataTypes.ENUM( "login_phone", "reset_password", "register_email", "register_phone"),
             allowNull: false,
         },
         attempts: {

@@ -15,11 +15,25 @@ export const credentialsSchema = z.discriminatedUnion("type", [
   }).strict(),
 ]);
 
+export const loginSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("email"),
+    identifier: z.string().email("Invalid email"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    deviceId: z.string().min(1, "deviceId is required"),
+  }).strict(),
+
+  z.object({
+    type: z.literal("phone"),
+    identifier: z.string().regex(/^[0-9]{10}$/, "Invalid phone number"),
+  }).strict(),
+]);
+
 export const otpVerificationSchema = z.object({
   type: z.enum(["email", "phone"]),
   identifier: z.string().min(1, "Email or phone is required"),
   otpCode: z.string().length(6, "OTP code must be 6 digits"),
-  purpose: z.enum(["login_email", "login_phone", "reset_password", "register_email", "register_phone"]),
+  purpose: z.enum([ "login_phone", "reset_password", "register_email", "register_phone"]),
   deviceId: z.string().optional()
 }).strict().superRefine((data, context) => {
   if (data.type === "email" && !z.string().email().safeParse(data.identifier).success) {
@@ -36,6 +50,10 @@ export const otpVerificationSchema = z.object({
 
   if (data.purpose.endsWith("_phone") && data.type !== "phone") {
     context.addIssue({ code: "custom", path: ["type"], message: "Phone purpose requires a phone identifier" });
+  }
+
+  if ((data.purpose === "login_phone") && !data.deviceId) {
+    context.addIssue({ code: "custom", path: ["deviceId"], message: "deviceId is required for login OTP verification" });
   }
 });
 

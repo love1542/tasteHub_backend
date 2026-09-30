@@ -7,7 +7,7 @@ import { ApiResponse } from "../../utils/apiResponse.js";
 import { generateAccessToken, generateRefreshToken } from "../../utils/tokenManger.js";
 import REFRESH_TOKENS from "../../models/refreshTokens.model.js";
 
-type OtpPurpose = "login_phone" | "login_email" | "reset_password" | "register_email" | "register_phone";
+type OtpPurpose = "login_phone" | "reset_password" | "register_email" | "register_phone";
 
 type OtpVerificationBody = {
     type: "email" | "phone";
@@ -17,7 +17,7 @@ type OtpVerificationBody = {
     deviceId?: string;
 };
 
-export const sendOtp = async (userId: string, purpose: "login_email" | "login_phone" | "reset_password" | "register_email" | "register_phone") => {
+export const sendOtp = async (userId: string, purpose: "login_phone" | "reset_password" | "register_email" | "register_phone") => {
     try {
         const oldOtp = await OTP.findOne({ where: { user_id: userId, purpose: purpose } })
 
@@ -73,7 +73,7 @@ export const verifyOtpCode = async (req: Request<{}, {}, OtpVerificationBody>, r
     try {
         const { type, identifier, otpCode, purpose, deviceId } = req.body;
 
-        if ((purpose === "login_phone" || purpose === "login_email") && !deviceId) {
+        if ((purpose === "login_phone") && !deviceId) {
             throw new AppError("Invalid request", 400, "deviceId not found");
         }
 
@@ -85,7 +85,6 @@ export const verifyOtpCode = async (req: Request<{}, {}, OtpVerificationBody>, r
                 const accessToken = generateAccessToken(userId);
                 return ApiResponse(res, { access_token: accessToken }, "OTP verified successfully", 200);
             }
-            case "login_email":
             case "login_phone": {
                 const accessToken = generateAccessToken(userId);
                 const refreshToken = generateRefreshToken(userId);

@@ -129,7 +129,7 @@ export const verifyOtp = async (
     type: "email" | "phone",
     identifier: string,
     otpCode: string,
-    purpose: "login_email" | "login_phone" | "reset_password" | "register_email" | "register_phone"
+    purpose: "login_phone" | "reset_password" | "register_email" | "register_phone"
 ): Promise<string> => {
     try {
         const user = await User.findOne({
@@ -141,7 +141,7 @@ export const verifyOtp = async (
         }
 
         if (
-            ((purpose === "login_email" || purpose === "register_email") && type !== "email") ||
+            ((purpose === "register_email") && type !== "email") ||
             ((purpose === "login_phone" || purpose === "register_phone") && type !== "phone")
         ) {
             throw new AppError("OTP purpose does not match identifier type", 400);
