@@ -157,14 +157,14 @@ export const getRefreshToken = async (req: Request, res: Response) => {
         }
 
         const newRefreshToken = generateRefreshToken(existToken.user_id)
-        const newAccessToken = generateRefreshToken(existToken.user_id)
+        const newAccessToken = generateAccessToken(existToken.user_id)
 
         existToken.refresh_token = newRefreshToken
         existToken.expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
         await existToken.save()
 
-        ApiResponse(res, { refreshToken: newRefreshToken, accessToken: newAccessToken }, "", 200)
+        ApiResponse(res, { refreshToken: newRefreshToken, accessToken: newAccessToken }, "succussfully ", 200)
     } catch (error) {
         console.log("refresh token time error", error)
         throw error
