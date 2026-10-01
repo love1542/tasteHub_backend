@@ -42,3 +42,36 @@ export const validateRequest = (schema: ZodType) => {
         next();
     };
 };
+
+
+export const validateQuery = (schema: ZodType) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+
+        const result = schema.safeParse(req.query);
+
+        if (!result.success) {
+
+            const errors: Record<string, string> = {};
+
+            result.error.issues.forEach(issue => {
+                if (issue.code === "unrecognized_keys") {
+                    issue.keys.forEach(key => {
+                        errors[key] = `Unexpected query parameter '${key}'`;
+                    });
+                    return;
+                }
+
+                const field = issue.path.length > 0 ? issue.path.join(".") : "_query";
+                errors[field] = issue.message;
+            });
+
+            console.log("Query validation errors:", errors);
+            throw new AppError("Invalid query parameters", 400, errors);
+        }
+
+       
+        res.locals.validatedQuery = result.data;
+
+        next();
+    };
+};
