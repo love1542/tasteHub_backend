@@ -7,7 +7,7 @@ export const getRestaurants = async (req: Request, res: Response, next: NextFunc
   try {
     const query = res.locals.validatedQuery as GetRestaurantsQuery;
     
-    const result = await listRestaurants(query);
+    const result = await listRestaurants(query, res.locals.user_id as string);
 
     return ApiResponse(res, result, "Restaurants fetched successfully", 200);
   } catch (error) {

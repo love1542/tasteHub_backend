@@ -1,6 +1,7 @@
 import { Op, Sequelize, type Order } from "sequelize";
 import {
   Cuisine,
+  Favourite,
   Rating,
   Restaurant,
   RestaurantAddress,
@@ -53,7 +54,7 @@ export const getIsRestaurantOpen = (hours: RestaurantHourLike[] = []) => {
 };
 
 
-export const listRestaurants = async (query: GetRestaurantsQuery) => {
+export const listRestaurants = async (query: GetRestaurantsQuery, userId?: string) => {
   const { page, limit, cuisineId, search, sortBy, sortOrder } = query;
   const offset = (page - 1) * limit;
 
@@ -110,6 +111,16 @@ export const listRestaurants = async (query: GetRestaurantsQuery) => {
   });
 
   const restaurantIds = restaurants.map((restaurant) => restaurant.restaurant_id);
+  const favouriteRows = userId && restaurantIds.length > 0
+    ? await Favourite.findAll({
+      where: { user_id: userId, restaurant_id: restaurantIds },
+      attributes: ["restaurant_id"],
+    })
+    : [];
+  const favouriteRestaurantIds = new Set(
+    favouriteRows.map((favourite) => favourite.restaurant_id)
+  );
+
   const ratingStats = await Rating.findAll({
     where: { restaurant_id: restaurantIds },
     attributes: [
@@ -145,6 +156,7 @@ export const listRestaurants = async (query: GetRestaurantsQuery) => {
       minDeliveryMinutes: restaurant.min_delivery_minutes,
       maxDeliveryMinutes: restaurant.max_delivery_minutes,
       isOpen: getIsRestaurantOpen(restaurantHours),
+      isFavourite: favouriteRestaurantIds.has(restaurant.restaurant_id),
       rating: Number(ratings.averageRating.toFixed(1)),
       ratingCount: ratings.ratingCount,
       cuisines: cuisines.map((cuisine: Cuisine): CuisineResponse => ({
