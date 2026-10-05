@@ -1,9 +1,10 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelizeInstance } from "../config/database.js";
+import { UserRole } from "../constants.js";
 
 class User extends Model {
   declare user_id: string;
-  declare role: string;
+  declare role: UserRole;
   declare email: string | null;
   declare password: string | null;
   declare phone: string | null;
@@ -27,7 +28,7 @@ User.init(
     },
 
     role: {
-      type: DataTypes.ENUM("user", "owner"),
+      type: DataTypes.ENUM(...Object.values(UserRole)),
       allowNull: false,
       defaultValue: "user",
     },
@@ -35,7 +36,6 @@ User.init(
     email: {
       type: DataTypes.STRING,
       allowNull: true,
-      unique: true,
     },
 
     password: {
@@ -46,7 +46,6 @@ User.init(
     phone: {
       type: DataTypes.STRING,
       allowNull: true,
-      unique: true,
     },
 
     full_name: {
@@ -90,6 +89,10 @@ User.init(
     sequelize: sequelizeInstance,
     tableName: "users",
     timestamps: true,
+    indexes: [
+      { unique: true, fields: ["role", "email"] },
+      { unique: true, fields: ["role", "phone"] },
+    ],
   }
 );
 

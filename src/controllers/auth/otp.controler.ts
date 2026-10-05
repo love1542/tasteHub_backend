@@ -6,6 +6,7 @@ import { verifyOtp } from "../../services/auth.service.js";
 import { ApiResponse } from "../../utils/apiResponse.js";
 import { generateAccessToken, generateRefreshToken } from "../../utils/tokenManger.js";
 import REFRESH_TOKENS from "../../models/refreshTokens.model.js";
+import { getUserRoleFromHeader } from "../../utils/userRole.js";
 
 type OtpPurpose = "login_phone" | "reset_password" | "register_email" | "register_phone";
 
@@ -72,12 +73,13 @@ export const sendOtp = async (userId: string, purpose: "login_phone" | "reset_pa
 export const verifyOtpCode = async (req: Request<{}, {}, OtpVerificationBody>, res: Response) => {
     try {
         const { type, identifier, otpCode, purpose, deviceId } = req.body;
+        const role = getUserRoleFromHeader(req.headers["x-user-role"]);
 
         if ((purpose === "login_phone") && !deviceId) {
             throw new AppError("Invalid request", 400, "deviceId not found");
         }
 
-        const userId = await verifyOtp(type, identifier, otpCode, purpose);
+        const userId = await verifyOtp(type, identifier, otpCode, purpose, role);
 
         switch (purpose) {
             case "register_email":

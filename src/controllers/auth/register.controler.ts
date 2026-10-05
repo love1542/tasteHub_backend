@@ -8,12 +8,14 @@ import DEFAULT_IMAGES from "../../models/defaultImages.model.js";
 import { getUserById } from "../../utils/userById.js";
 import { generateAccessToken, generateRefreshToken } from "../../utils/tokenManger.js";
 import REFRESH_TOKENS from "../../models/refreshTokens.model.js";
+import { getUserRoleFromHeader } from "../../utils/userRole.js";
 
 export const login = async (req: Request, res: Response) => {
     const { type, identifier, password, deviceId } = req.body
+    const role = getUserRoleFromHeader(req.headers["x-user-role"]);
 
     try {
-        const user = await checkUserByEmailOrPhone(type, identifier)
+        const user = await checkUserByEmailOrPhone(type, identifier, role)
         assertAccountCanLogin(user, type);
 
         if (type === "email") {
@@ -59,9 +61,10 @@ export const login = async (req: Request, res: Response) => {
 
 export const registerUser = async (req: Request, res: Response) => {
     const { type, identifier, password } = req.body
+    const role = getUserRoleFromHeader(req.headers["x-user-role"]);
 
     try {
-        const newUser = await createUser(type, identifier, password);
+        const newUser = await createUser(type, identifier, password, role);
 
         ApiResponse(res, newUser, "OTP Sent Successfully", 201);
     } catch (error) {

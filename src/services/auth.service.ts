@@ -4,13 +4,14 @@ import User from "../models/user.model.js";
 import AppError from "../utils/errorHandling.js";
 import bcrypt from "bcrypt"
 import { generateOTP } from "../utils/otpGenrator.js";
+import { UserRole } from "../constants.js";
 
-export const createUser = async (type: string, identifier: string, password?: string) => {
+export const createUser = async (type: string, identifier: string, password: string | undefined, role: UserRole) => {
     try {
         let newUser;
 
         if (type === "email") {
-            const existingUser = await User.findOne({ where: { email: identifier } });
+            const existingUser = await User.findOne({ where: { email: identifier, role } });
             if (existingUser) {
                 if (!existingUser.email_verified) {
                     const otp = generateOTP()
@@ -38,11 +39,11 @@ export const createUser = async (type: string, identifier: string, password?: st
                 }
             }
             const hashedPassword = password ? await createHashedPassword(password) : undefined;
-            newUser = await User.create({ email: identifier, password: hashedPassword });
+            newUser = await User.create({ email: identifier, password: hashedPassword, role });
             await sendOtp(newUser.user_id, "register_email");
 
         } else if (type === "phone") {
-            const existingUser = await User.findOne({ where: { phone: identifier } });
+            const existingUser = await User.findOne({ where: { phone: identifier, role } });
             if (existingUser) {
                 if (!existingUser.phone_verified) {
                     const otp = generateOTP()
@@ -69,7 +70,7 @@ export const createUser = async (type: string, identifier: string, password?: st
                 }
             }
 
-            newUser = await User.create({ phone: identifier });
+            newUser = await User.create({ phone: identifier, role });
             await sendOtp(newUser.user_id, "register_phone");
 
         } else {
@@ -129,11 +130,12 @@ export const verifyOtp = async (
     type: "email" | "phone",
     identifier: string,
     otpCode: string,
-    purpose: "login_phone" | "reset_password" | "register_email" | "register_phone"
+    purpose: "login_phone" | "reset_password" | "register_email" | "register_phone",
+    role: UserRole
 ): Promise<string> => {
     try {
         const user = await User.findOne({
-            where: type === "email" ? { email: identifier } : { phone: identifier },
+            where: type === "email" ? { email: identifier, role } : { phone: identifier, role },
         });
 
         if (!user) {
@@ -189,15 +191,15 @@ export const verifyOtp = async (
 
 }
 
-export const checkUserByEmailOrPhone = async (type: "phone" | "email", identifier: string): Promise<User> => {
+export const checkUserByEmailOrPhone = async (type: "phone" | "email", identifier: string, role: UserRole): Promise<User> => {
     try {
         let user
         if (type === "email") {
-            user = await User.findOne({ where: { email: identifier } })
+            user = await User.findOne({ where: { email: identifier, role } })
         }
 
         if (type === "phone") {
-            user = await User.findOne({ where: { phone: identifier } })
+            user = await User.findOne({ where: { phone: identifier, role } })
         }
 
         if (!user) {
